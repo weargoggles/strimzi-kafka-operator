@@ -763,6 +763,7 @@ public abstract class AbstractModel {
     }
 
     protected StatefulSet createStatefulSet(
+            Map<String, String> annotations,
             List<Volume> volumes,
             List<PersistentVolumeClaim> volumeClaims,
             List<VolumeMount> volumeMounts,
@@ -771,7 +772,7 @@ public abstract class AbstractModel {
             List<Container> containers,
             boolean isOpenShift) {
 
-        Map<String, String> annotations = new HashMap<>();
+        annotations = new HashMap<>(annotations);
 
         annotations.put(DELETE_CLAIM_ANNOTATION,
                 String.valueOf(storage instanceof PersistentClaimStorage
