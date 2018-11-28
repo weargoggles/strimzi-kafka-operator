@@ -139,7 +139,7 @@ public class ResourceUtils {
                 initialClientsCaCert,
                 KafkaCluster.clientsCaKeySecretName(clusterName),
                 initialClientsCaKey,
-                365, 30, true);
+                365, 30, true, null);
     }
 
     public static Secret createInitialCaCertSecret(String clusterNamespace, String clusterName, String secretName, String caCert) {

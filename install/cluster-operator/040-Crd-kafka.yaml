@@ -1427,6 +1427,11 @@ spec:
                 renewalDays:
                   type: integer
                   minimum: 1
+                certificateExpirationPolicy:
+                  type: string
+                  enum:
+                  - renew-certificate
+                  - replace-key
             clientsCa:
               type: object
               properties:
@@ -1438,6 +1443,11 @@ spec:
                 renewalDays:
                   type: integer
                   minimum: 1
+                certificateExpirationPolicy:
+                  type: string
+                  enum:
+                  - renew-certificate
+                  - replace-key
             maintenanceTimeWindows:
               type: array
               items:

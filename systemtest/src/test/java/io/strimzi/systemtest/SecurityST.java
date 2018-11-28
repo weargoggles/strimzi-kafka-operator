@@ -55,6 +55,7 @@ class SecurityST extends AbstractST {
     private static final String TLS_PROTOCOL = "Protocol  : TLSv1";
     private static final String SSL_TIMEOUT = "Timeout   : 300 (sec)";
     public static final String STRIMZI_IO_FORCE_RENEW = "strimzi.io/force-renew";
+    public static final String STRIMZI_IO_FORCE_REPLACE = "strimzi.io/force-replace";
 
     @Test
     void testCertificates() {
@@ -161,8 +162,6 @@ class SecurityST extends AbstractST {
         }
     }
 
-
-
     @Test
     @OpenShiftOnly
     public void testAutoRenewCaCertsTriggeredByAnno() throws InterruptedException {
@@ -223,7 +222,74 @@ class SecurityST extends AbstractST {
         AvailabilityVerifier.Result result = mp.stop(30_000);
         LOGGER.info("Producer/consumer stats during cert renewal {}", result);
     }
-    
+
+    @Test
+    @OpenShiftOnly
+    public void testAutoReplaceCaKeysTriggeredByAnno() throws InterruptedException {
+        createCluster();
+        String userName = "alice";
+        resources().tlsUser(userName).done();
+        waitFor("", 1_000, 60_000, () -> {
+            return client.secrets().inNamespace(NAMESPACE).withName("alice").get() != null;
+        },
+            () -> {
+                LOGGER.error("Couldn't find user secret {}", client.secrets().inNamespace(NAMESPACE).list().getItems());
+            });
+
+        AvailabilityVerifier mp = waitForInitialAvailability(userName);
+
+        // Get all pods, and their resource versions
+        Map<String, String> zkPods = StUtils.ssSnapshot(client, NAMESPACE, zookeeperStatefulSetName(CLUSTER_NAME));
+        Map<String, String> kafkaPods = StUtils.ssSnapshot(client, NAMESPACE, kafkaStatefulSetName(CLUSTER_NAME));
+        Map<String, String> eoPod = StUtils.depSnapshot(client, NAMESPACE, KafkaResources.entityOperatorDeploymentName(CLUSTER_NAME));
+
+        LOGGER.info("Triggering CA cert renewal by adding the annotation");
+        Map<String, String> initialCaKeys = new HashMap<>();
+        List<String> secrets = asList(clusterCaKeySecretName(CLUSTER_NAME)/*,
+                // TODO why doesn't the clients CA cert get renewed?
+                clientsCaCertificateSecretName(CLUSTER_NAME)*/);
+        for (String secretName : secrets) {
+            Secret secret = client.secrets().inNamespace(NAMESPACE).withName(secretName).get();
+            String value = secret.getData().get("ca.key");
+            assertNotNull("ca.key in " + secretName + " should not be null", value);
+            initialCaKeys.put(secretName, value);
+            Secret annotated = new SecretBuilder(secret)
+                    .editMetadata()
+                    .addToAnnotations(STRIMZI_IO_FORCE_REPLACE, "true")
+                    .endMetadata()
+                    .build();
+            LOGGER.info("Patching secret {} with {}", secretName, STRIMZI_IO_FORCE_REPLACE);
+            client.secrets().inNamespace(NAMESPACE).withName(secretName).patch(annotated);
+        }
+
+        LOGGER.info("Wait for zk to rolling restart (1)..");
+        zkPods = StUtils.waitTillSsHasRolled(client, NAMESPACE, zookeeperStatefulSetName(CLUSTER_NAME), zkPods);
+        LOGGER.info("Wait for kafka to rolling restart (1)...");
+        kafkaPods = StUtils.waitTillSsHasRolled(client, NAMESPACE, kafkaStatefulSetName(CLUSTER_NAME), kafkaPods);
+        LOGGER.info("Wait for EO to rolling restart (1)...");
+        eoPod = StUtils.waitTillDepHasRolled(client, NAMESPACE, KafkaResources.entityOperatorDeploymentName(CLUSTER_NAME), kafkaPods);
+
+        LOGGER.info("Wait for zk to rolling restart (2)..");
+        zkPods = StUtils.waitTillSsHasRolled(client, NAMESPACE, zookeeperStatefulSetName(CLUSTER_NAME), zkPods);
+        LOGGER.info("Wait for kafka to rolling restart (2)...");
+        kafkaPods = StUtils.waitTillSsHasRolled(client, NAMESPACE, kafkaStatefulSetName(CLUSTER_NAME), kafkaPods);
+
+        LOGGER.info("Checking the certificates have been replaced");
+        for (String secretName : secrets) {
+            Secret secret = client.secrets().inNamespace(NAMESPACE).withName(secretName).get();
+            assertNotNull(secret, "Secret " + secretName + " should exist");
+            assertNotNull(secret.getData(), "CA key in " + secretName + " should have non-null 'data'");
+            String value = secret.getData().get("ca.key");
+            assertNotEquals("CA key in " + secretName + " should have changed",
+                    initialCaKeys.get(secretName), value);
+        }
+
+        waitForAvailability(mp);
+
+        AvailabilityVerifier.Result result = mp.stop(30_000);
+        LOGGER.info("Producer/consumer stats during cert renewal {}", result);
+    }
+
     private AvailabilityVerifier waitForInitialAvailability(String userName) {
         AvailabilityVerifier mp = new AvailabilityVerifier(client, NAMESPACE, CLUSTER_NAME, userName);
         mp.start();
