@@ -1,0 +1,2 @@
+:SupportedKafkaVersionList: 2.0.0, 2.0.1 and 2.1.0
+:DefaultKafkaVersion: 2.0.0

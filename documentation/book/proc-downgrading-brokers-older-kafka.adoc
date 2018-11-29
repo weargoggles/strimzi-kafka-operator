@@ -1,0 +1,22 @@
+// This module is included in the following assemblies:
+//
+// assembly-upgrading-kafka-versions.adoc
+
+
+[id='proc-downgrading-brokers-older-kafka-{context}']
+
+= Downgrading brokers to an older Kafka version
+
+This procedure will describe how to downgrade a {ProductName} Kafka cluster from one version to another.
+
+.Prerequisites
+
+* The Cluster Operator up and running.
+* A `Kafka` resource to be downgraded.
+* You have checked that your `Kafka.spec.kafka.config` contains no options which are not supported in the version of Kafka being downgraded to.
+
+.Procedure
+
+. 
+
+.Additional resources

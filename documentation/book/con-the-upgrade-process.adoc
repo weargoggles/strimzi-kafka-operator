@@ -1,0 +1,41 @@
+// This module is included in the following assemblies:
+//
+// assembly-upgrading-kafka-versions.adoc
+
+[id='con-the-upgrade-process-{context}']
+= The upgrade process
+
+Depending on the difference between the version being upgraded from and to, the upgrade process works in one of two ways:
+
+* A three phase update
+* A single phase update
+
+== Three phase update
+
+When the versions of Kafka use a different interbroker protocol version, or log message format version a three phase update is needed.
+
+. The existing cluster is reconfigured so that the brokers will communicate using the old version of the protocol and using the old message format.
+A rolling restart is necessary so that the brokers are using the new image.
+
+. All the brokers in the cluster are now running the new image.
+While they all _understand_ the new protocol version, they're all _using_ the old version. 
+Similarly they are using the old message format.
+A rolling restart is necessary for them all to start using the new protocol.
+
+. Clients can now be updated, one-by-one, to the new version of the client libraries.
+Once that is complete the cluster can be reconfigured so that the brokers use the new message format (using `log.message.format.version`).
+A final rolling restart is necessary.
+
+NOTE: It is possible to revert the version change until the point that `log.message.format.version` is updated in step 3.
+Once producers have sent messages in the new message format and those messages have been appended to broker logs it is not possible to revert to the old version because the old brokers won't be able to read the messages in the log.
+
+Although the overall process happens in three stages, user action is only required only twice:
+
+. Initially to set change the version used in the `Kafka` resource.
+
+. In step 3, to upgrade the clients and update the `Kafka` resource once that has been done.
+
+== Single phase update
+
+When the versions of Kafka use the ame interbroker protocol version, and log message format version a single phase update can be used. 
+In this case a rolling update of the brokers to use the new image version is all that is needed and the Cluster Operator will do this for you.

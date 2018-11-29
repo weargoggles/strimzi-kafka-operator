@@ -1,0 +1,49 @@
+// This assembly is included in the following assemblies:
+//
+// master.adoc
+
+[id='assembly-upgrade-{context}']
+= {ProductName} and Kafka upgrade
+
+A given version of {ProductName} supports a range of versions of Kafka. 
+
+Within a given version of {ProductName} it is possible to upgrade (and sometimes downgrade) to a newer supported version of Kafka.
+
+When a newer version of {ProductName} is available, may provide support for newer versions of Kafka. 
+In this case it is necessary to upgrade {ProductName} first, before then upgrading to a newer Kafka version supported by it.
+
+include::proc-upgrading-cluster-operator.adoc[leveloffset=+1]
+
+include::assembly-upgrading-kafka-versions.adoc[leveloffset=+1]
+
+
+// //include:con-kafka-upgrade-process
+// [id='con-kafka-upgrade-process-{context}']
+// = The Kafka upgrade process
+
+// Upgrading Kafka can involve up to three rolling restarts of the brokers in a Kafka cluster. 
+// Whether all three restarts are needed depends on: 
+
+// * Whether the two versions of Kafka use the same message format version
+// * Whether the two versions of Kafka use the same interbroker protocol version
+
+// When the two versions of Kafka share the same verions of these properties only one rolling restart is needed.
+// This is typically the case when the verions differ only in the micro version, for example Kafka 2.0.0 and Kafka 2.0.1.
+// In any case the Cluster Operator comes configured with this version information. 
+// The Cluster Operator it will perform the rolling upgrades for you, but some manual actions are required.
+
+// //include::proc-upgrading-kafka
+// [id='proc-upgrading-kafka-{context}']
+// = Upgrading Kafka
+
+// This procedure describes how to upgrade a Kafka Cluster that is managed by the Cluster Operator.
+
+// .Prerequisites
+
+// * A running Cluster Operator.
+// * An already deployed Kafka cluster. 
+// * The desired version of Kafka that's supported by the running version of the Cluster Operator
+
+// .Procedure
+
+// .Further resources
