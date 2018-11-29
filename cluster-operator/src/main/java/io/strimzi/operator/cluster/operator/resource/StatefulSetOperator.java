@@ -41,9 +41,9 @@ public abstract class StatefulSetOperator extends AbstractScalableResourceOperat
     private static final int INIT_GENERATION = 0;
 
     private static final Logger log = LogManager.getLogger(StatefulSetOperator.class.getName());
-    private final PodOperator podOperations;
+    protected final PodOperator podOperations;
     private final PvcOperator pvcOperations;
-    private final long operationTimeoutMs;
+    protected final long operationTimeoutMs;
 
     /**
      * Constructor
@@ -79,7 +79,6 @@ public abstract class StatefulSetOperator extends AbstractScalableResourceOperat
         final int replicas = ss.getSpec().getReplicas();
         log.debug("Considering rolling update of {}/{}", namespace, name);
         Future<Void> f = Future.succeededFuture();
-        // Then for each replica, maybe restart it
         for (int i = 0; i < replicas; i++) {
             String podName = name + "-" + i;
             f = f.compose(ignored -> maybeRestartPod(ss, podName, podRestart));
