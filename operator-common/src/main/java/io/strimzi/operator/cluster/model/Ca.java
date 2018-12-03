@@ -387,7 +387,7 @@ public abstract class Ca {
             log.info("{}: Expired CA certificates removed", this);
         }
         if (renewalType != RenewalType.NOOP) {
-            log.info("{}: {}", this, renewalType.postDescription(caKeySecretName, caCertSecretName));
+            log.debug("{}: {}", this, renewalType.postDescription(caKeySecretName, caCertSecretName));
         }
 
         // cluster CA certificate generation annotation handling
@@ -454,7 +454,7 @@ public abstract class Ca {
             case REPLACE_KEY:
             case RENEW_CERT:
             case CREATE:
-                log.log(!generateCa ? Level.WARN : Level.INFO,
+                log.log(!generateCa ? Level.WARN : Level.DEBUG,
                         "{}: {}: {}", this, renewalType.preDescription(caKeySecretName, caCertSecretName), reason);
                 break;
             case NOOP:
