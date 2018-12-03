@@ -228,7 +228,7 @@ class SecurityST extends AbstractST {
     public void testAutoReplaceCaKeysTriggeredByAnno() throws InterruptedException {
         createCluster();
         String userName = "alice";
-        resources().tlsUser(userName).done();
+        resources().tlsUser(CLUSTER_NAME, userName).done();
         waitFor("", 1_000, 60_000, () -> {
             return client.secrets().inNamespace(NAMESPACE).withName("alice").get() != null;
         },
