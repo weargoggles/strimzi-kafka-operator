@@ -250,71 +250,71 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
             Labels caLabels = Labels.userLabels(kafkaAssembly.getMetadata().getLabels()).withKind(reconciliation.type().toString()).withCluster(reconciliation.name());
             Future<ReconciliationState> result = Future.future();
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").<ReconciliationState>executeBlocking(
-                    future -> {
-                        try {
-                            String clusterCaCertName = AbstractModel.clusterCaCertSecretName(name);
-                            String clusterCaKeyName = AbstractModel.clusterCaKeySecretName(name);
-                            String clientsCaCertName = KafkaCluster.clientsCaCertSecretName(name);
-                            String clientsCaKeyName = KafkaCluster.clientsCaKeySecretName(name);
-                            Secret clusterCaCertSecret = null;
-                            Secret clusterCaKeySecret = null;
-                            Secret clientsCaCertSecret = null;
-                            Secret clientsCaKeySecret = null;
-                            List<Secret> clusterSecrets = secretOperations.list(reconciliation.namespace(), caLabels);
-                            for (Secret secret : clusterSecrets) {
-                                String secretName = secret.getMetadata().getName();
-                                if (secretName.equals(clusterCaCertName)) {
-                                    clusterCaCertSecret = secret;
-                                } else if (secretName.equals(clusterCaKeyName)) {
-                                    clusterCaKeySecret = secret;
-                                } else if (secretName.equals(clientsCaCertName)) {
-                                    clientsCaCertSecret = secret;
-                                } else if (secretName.equals(clientsCaKeyName)) {
-                                    clientsCaKeySecret = secret;
-                                }
+                future -> {
+                    try {
+                        String clusterCaCertName = AbstractModel.clusterCaCertSecretName(name);
+                        String clusterCaKeyName = AbstractModel.clusterCaKeySecretName(name);
+                        String clientsCaCertName = KafkaCluster.clientsCaCertSecretName(name);
+                        String clientsCaKeyName = KafkaCluster.clientsCaKeySecretName(name);
+                        Secret clusterCaCertSecret = null;
+                        Secret clusterCaKeySecret = null;
+                        Secret clientsCaCertSecret = null;
+                        Secret clientsCaKeySecret = null;
+                        List<Secret> clusterSecrets = secretOperations.list(reconciliation.namespace(), caLabels);
+                        for (Secret secret : clusterSecrets) {
+                            String secretName = secret.getMetadata().getName();
+                            if (secretName.equals(clusterCaCertName)) {
+                                clusterCaCertSecret = secret;
+                            } else if (secretName.equals(clusterCaKeyName)) {
+                                clusterCaKeySecret = secret;
+                            } else if (secretName.equals(clientsCaCertName)) {
+                                clientsCaCertSecret = secret;
+                            } else if (secretName.equals(clientsCaKeyName)) {
+                                clientsCaKeySecret = secret;
                             }
-                            OwnerReference ownerRef = new OwnerReferenceBuilder()
-                                    .withApiVersion(kafkaAssembly.getApiVersion())
-                                    .withKind(kafkaAssembly.getKind())
-                                    .withName(kafkaAssembly.getMetadata().getName())
-                                    .withUid(kafkaAssembly.getMetadata().getUid())
-                                    .withBlockOwnerDeletion(false)
-                                    .withController(false)
-                                    .build();
-
-                            CertificateAuthority clusterCaConfig = kafkaAssembly.getSpec().getClusterCa();
-                            this.clusterCa = new ClusterCa(certManager, name, clusterCaCertSecret, clusterCaKeySecret,
-                                    ModelUtils.getCertificateValidity(clusterCaConfig),
-                                    ModelUtils.getRenewalDays(clusterCaConfig),
-                                    clusterCaConfig == null || clusterCaConfig.isGenerateCertificateAuthority());
-                            clusterCa.createOrRenew(
-                                    reconciliation.namespace(), reconciliation.name(), caLabels.toMap(),
-                                    ownerRef);
-
-                            this.clusterCa.initCaSecrets(clusterSecrets);
-
-                            CertificateAuthority clientsCaConfig = kafkaAssembly.getSpec().getClientsCa();
-                            this.clientsCa = new ClientsCa(certManager,
-                                    clientsCaCertName, clientsCaCertSecret,
-                                    clientsCaKeyName, clientsCaKeySecret,
-                                    ModelUtils.getCertificateValidity(clientsCaConfig),
-                                    ModelUtils.getRenewalDays(clientsCaConfig),
-                                    clientsCaConfig == null || clientsCaConfig.isGenerateCertificateAuthority());
-                            clientsCa.createOrRenew(reconciliation.namespace(), reconciliation.name(),
-                                    caLabels.toMap(), ownerRef);
-
-                            secretOperations.reconcile(reconciliation.namespace(), clusterCaCertName, this.clusterCa.caCertSecret())
-                                    .compose(ignored -> secretOperations.reconcile(reconciliation.namespace(), clusterCaKeyName, this.clusterCa.caKeySecret()))
-                                    .compose(ignored -> secretOperations.reconcile(reconciliation.namespace(), clientsCaCertName, this.clientsCa.caCertSecret()))
-                                    .compose(ignored -> secretOperations.reconcile(reconciliation.namespace(), clientsCaKeyName, this.clientsCa.caKeySecret()))
-                                    .compose(ignored -> {
-                                        future.complete(this);
-                                    }, future);
-                        } catch (Throwable e) {
-                            future.fail(e);
                         }
-                    }, true,
-                    result.completer()
+                        OwnerReference ownerRef = new OwnerReferenceBuilder()
+                                .withApiVersion(kafkaAssembly.getApiVersion())
+                                .withKind(kafkaAssembly.getKind())
+                                .withName(kafkaAssembly.getMetadata().getName())
+                                .withUid(kafkaAssembly.getMetadata().getUid())
+                                .withBlockOwnerDeletion(false)
+                                .withController(false)
+                                .build();
+
+                        CertificateAuthority clusterCaConfig = kafkaAssembly.getSpec().getClusterCa();
+                        this.clusterCa = new ClusterCa(certManager, name, clusterCaCertSecret, clusterCaKeySecret,
+                                ModelUtils.getCertificateValidity(clusterCaConfig),
+                                ModelUtils.getRenewalDays(clusterCaConfig),
+                                clusterCaConfig == null || clusterCaConfig.isGenerateCertificateAuthority());
+                        clusterCa.createOrRenew(
+                                reconciliation.namespace(), reconciliation.name(), caLabels.toMap(),
+                                ownerRef);
+
+                        this.clusterCa.initCaSecrets(clusterSecrets);
+
+                        CertificateAuthority clientsCaConfig = kafkaAssembly.getSpec().getClientsCa();
+                        this.clientsCa = new ClientsCa(certManager,
+                                clientsCaCertName, clientsCaCertSecret,
+                                clientsCaKeyName, clientsCaKeySecret,
+                                ModelUtils.getCertificateValidity(clientsCaConfig),
+                                ModelUtils.getRenewalDays(clientsCaConfig),
+                                clientsCaConfig == null || clientsCaConfig.isGenerateCertificateAuthority());
+                        clientsCa.createOrRenew(reconciliation.namespace(), reconciliation.name(),
+                                caLabels.toMap(), ownerRef);
+
+                        secretOperations.reconcile(reconciliation.namespace(), clusterCaCertName, this.clusterCa.caCertSecret())
+                                .compose(ignored -> secretOperations.reconcile(reconciliation.namespace(), clusterCaKeyName, this.clusterCa.caKeySecret()))
+                                .compose(ignored -> secretOperations.reconcile(reconciliation.namespace(), clientsCaCertName, this.clientsCa.caCertSecret()))
+                                .compose(ignored -> secretOperations.reconcile(reconciliation.namespace(), clientsCaKeyName, this.clientsCa.caKeySecret()))
+                                .compose(ignored -> {
+                                    future.complete(this);
+                                }, future);
+                    } catch (Throwable e) {
+                        future.fail(e);
+                    }
+                }, true,
+                result.completer()
             );
             return result;
         }
@@ -366,30 +366,30 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
             Future<ReconciliationState> fut = Future.future();
 
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").executeBlocking(
-                    future -> {
-                        try {
-                            this.zkCluster = ZookeeperCluster.fromCrd(kafkaAssembly);
+                future -> {
+                    try {
+                        this.zkCluster = ZookeeperCluster.fromCrd(kafkaAssembly);
 
-                            ConfigMap logAndMetricsConfigMap = zkCluster.generateMetricsAndLogConfigMap(zkCluster.getLogging() instanceof ExternalLogging ?
-                                    configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) zkCluster.getLogging()).getName()) :
-                                    null);
+                        ConfigMap logAndMetricsConfigMap = zkCluster.generateMetricsAndLogConfigMap(zkCluster.getLogging() instanceof ExternalLogging ?
+                                configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) zkCluster.getLogging()).getName()) :
+                                null);
 
-                            this.zkService = zkCluster.generateService();
-                            this.zkHeadlessService = zkCluster.generateHeadlessService();
-                            this.zkMetricsAndLogsConfigMap = zkCluster.generateMetricsAndLogConfigMap(logAndMetricsConfigMap);
+                        this.zkService = zkCluster.generateService();
+                        this.zkHeadlessService = zkCluster.generateHeadlessService();
+                        this.zkMetricsAndLogsConfigMap = zkCluster.generateMetricsAndLogConfigMap(logAndMetricsConfigMap);
 
-                            future.complete(this);
-                        } catch (Throwable e) {
-                            future.fail(e);
-                        }
-                    }, true,
-                    res -> {
-                        if (res.succeeded()) {
-                            fut.complete((ReconciliationState) res.result());
-                        } else {
-                            fut.fail(res.cause());
-                        }
+                        future.complete(this);
+                    } catch (Throwable e) {
+                        future.fail(e);
                     }
+                }, true,
+                res -> {
+                    if (res.succeeded()) {
+                        fut.complete((ReconciliationState) res.result());
+                    } else {
+                        fut.fail(res.cause());
+                    }
+                }
             );
 
             return fut;
@@ -422,24 +422,24 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
             Future<ReconciliationState> result = Future.future();
 
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").<Boolean>executeBlocking(
-                    future -> {
-                        ConfigMap current = configMapOperations.get(namespace, cluster.getAncillaryConfigName());
-                        boolean onlyMetricsSettingChanged = onlyMetricsSettingChanged(current, configMap);
-                        future.complete(onlyMetricsSettingChanged);
-                    }, res -> {
-                        if (res.succeeded()) {
-                            boolean onlyMetricsSettingChanged = res.result();
-                            function.apply(onlyMetricsSettingChanged, configMapOperations.reconcile(namespace, cluster.getAncillaryConfigName(), configMap)).setHandler(res2 -> {
-                                if (res2.succeeded()) {
-                                    result.complete(res2.result());
-                                } else {
-                                    result.fail(res2.cause());
-                                }
-                            });
-                        } else {
-                            result.fail(res.cause());
-                        }
-                    });
+                future -> {
+                    ConfigMap current = configMapOperations.get(namespace, cluster.getAncillaryConfigName());
+                    boolean onlyMetricsSettingChanged = onlyMetricsSettingChanged(current, configMap);
+                    future.complete(onlyMetricsSettingChanged);
+                }, res -> {
+                    if (res.succeeded()) {
+                        boolean onlyMetricsSettingChanged = res.result();
+                        function.apply(onlyMetricsSettingChanged, configMapOperations.reconcile(namespace, cluster.getAncillaryConfigName(), configMap)).setHandler(res2 -> {
+                            if (res2.succeeded()) {
+                                result.complete(res2.result());
+                            } else {
+                                result.fail(res2.cause());
+                            }
+                        });
+                    } else {
+                        result.fail(res.cause());
+                    }
+                });
             return result;
         }
 
@@ -512,30 +512,30 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
             Future<ReconciliationState> fut = Future.future();
 
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").<ReconciliationState>executeBlocking(
-                    future -> {
-                        try {
-                            this.kafkaCluster = KafkaCluster.fromCrd(kafkaAssembly);
+                future -> {
+                    try {
+                        this.kafkaCluster = KafkaCluster.fromCrd(kafkaAssembly);
 
-                            ConfigMap logAndMetricsConfigMap = kafkaCluster.generateMetricsAndLogConfigMap(
-                                    kafkaCluster.getLogging() instanceof ExternalLogging ?
-                                            configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) kafkaCluster.getLogging()).getName()) :
-                                            null);
-                            this.kafkaService = kafkaCluster.generateService();
-                            this.kafkaHeadlessService = kafkaCluster.generateHeadlessService();
-                            this.kafkaMetricsAndLogsConfigMap = logAndMetricsConfigMap;
+                        ConfigMap logAndMetricsConfigMap = kafkaCluster.generateMetricsAndLogConfigMap(
+                                kafkaCluster.getLogging() instanceof ExternalLogging ?
+                                        configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) kafkaCluster.getLogging()).getName()) :
+                                        null);
+                        this.kafkaService = kafkaCluster.generateService();
+                        this.kafkaHeadlessService = kafkaCluster.generateHeadlessService();
+                        this.kafkaMetricsAndLogsConfigMap = logAndMetricsConfigMap;
 
-                            future.complete(this);
-                        } catch (Throwable e) {
-                            future.fail(e);
-                        }
-                    }, true,
-                    res -> {
-                        if (res.succeeded()) {
-                            fut.complete(res.result());
-                        } else {
-                            fut.fail(res.cause());
-                        }
+                        future.complete(this);
+                    } catch (Throwable e) {
+                        future.fail(e);
                     }
+                }, true,
+                res -> {
+                    if (res.succeeded()) {
+                        fut.complete(res.result());
+                    } else {
+                        fut.fail(res.cause());
+                    }
+                }
             );
             return fut;
         }
@@ -655,49 +655,49 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
             Future blockingFuture = Future.future();
 
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").executeBlocking(
-                    future -> {
-                        String serviceName = KafkaCluster.externalBootstrapServiceName(name);
-                        Future<Void> address = null;
+                future -> {
+                    String serviceName = KafkaCluster.externalBootstrapServiceName(name);
+                    Future<Void> address = null;
 
-                        if (kafkaCluster.isExposedWithNodePort()) {
-                            address = serviceOperations.hasNodePort(namespace, serviceName, 1_000, operationTimeoutMs);
-                        } else {
-                            address = serviceOperations.hasIngressAddress(namespace, serviceName, 1_000, operationTimeoutMs);
-                        }
+                    if (kafkaCluster.isExposedWithNodePort()) {
+                        address = serviceOperations.hasNodePort(namespace, serviceName, 1_000, operationTimeoutMs);
+                    } else {
+                        address = serviceOperations.hasIngressAddress(namespace, serviceName, 1_000, operationTimeoutMs);
+                    }
 
-                        address.setHandler(res -> {
-                            if (res.succeeded()) {
-                                String bootstrapAddress = null;
-
-                                if (kafkaCluster.isExposedWithLoadBalancer()) {
-                                    if (serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getHostname() != null) {
-                                        bootstrapAddress = serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getHostname();
-                                    } else {
-                                        bootstrapAddress = serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getIp();
-                                    }
-
-                                    this.kafkaExternalBootstrapDnsName = bootstrapAddress;
-                                } else if (kafkaCluster.isExposedWithNodePort()) {
-                                    bootstrapAddress = serviceOperations.get(namespace, serviceName).getSpec().getPorts().get(0).getNodePort().toString();
-                                }
-
-                                if (log.isTraceEnabled()) {
-                                    log.trace("{}: Found address {} for Service {}", reconciliation, bootstrapAddress, serviceName);
-                                }
-
-                                future.complete();
-                            } else {
-                                log.warn("{}: No address found for Service {}", reconciliation, serviceName);
-                                future.fail("No address found for Service " + serviceName);
-                            }
-                        });
-                    }, res -> {
+                    address.setHandler(res -> {
                         if (res.succeeded()) {
-                            blockingFuture.complete();
+                            String bootstrapAddress = null;
+
+                            if (kafkaCluster.isExposedWithLoadBalancer()) {
+                                if (serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getHostname() != null) {
+                                    bootstrapAddress = serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getHostname();
+                                } else {
+                                    bootstrapAddress = serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getIp();
+                                }
+
+                                this.kafkaExternalBootstrapDnsName = bootstrapAddress;
+                            } else if (kafkaCluster.isExposedWithNodePort()) {
+                                bootstrapAddress = serviceOperations.get(namespace, serviceName).getSpec().getPorts().get(0).getNodePort().toString();
+                            }
+
+                            if (log.isTraceEnabled()) {
+                                log.trace("{}: Found address {} for Service {}", reconciliation, bootstrapAddress, serviceName);
+                            }
+
+                            future.complete();
                         } else {
-                            blockingFuture.fail(res.cause());
+                            log.warn("{}: No address found for Service {}", reconciliation, serviceName);
+                            future.fail("No address found for Service " + serviceName);
                         }
                     });
+                }, res -> {
+                    if (res.succeeded()) {
+                        blockingFuture.complete();
+                    } else {
+                        blockingFuture.fail(res.cause());
+                    }
+                });
 
             return withVoid(blockingFuture);
         }
@@ -710,71 +710,71 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
             Future blockingFuture = Future.future();
 
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").executeBlocking(
-                    future -> {
-                        int replicas = kafkaCluster.getReplicas();
-                        List<Future> routeFutures = new ArrayList<>(replicas);
+                future -> {
+                    int replicas = kafkaCluster.getReplicas();
+                    List<Future> routeFutures = new ArrayList<>(replicas);
 
-                        for (int i = 0; i < replicas; i++) {
-                            String serviceName = KafkaCluster.externalServiceName(name, i);
-                            Future routeFuture = Future.future();
+                    for (int i = 0; i < replicas; i++) {
+                        String serviceName = KafkaCluster.externalServiceName(name, i);
+                        Future routeFuture = Future.future();
 
-                            Future<Void> address = null;
+                        Future<Void> address = null;
 
-                            if (kafkaCluster.isExposedWithNodePort()) {
-                                address = serviceOperations.hasNodePort(namespace, serviceName, 1_000, operationTimeoutMs);
-                            } else {
-                                address = serviceOperations.hasIngressAddress(namespace, serviceName, 1_000, operationTimeoutMs);
-                            }
-
-                            int podNumber = i;
-
-                            address.setHandler(res -> {
-                                if (res.succeeded()) {
-                                    String serviceAddress = null;
-                                    if (kafkaCluster.isExposedWithLoadBalancer()) {
-                                        if (serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getHostname() != null) {
-                                            serviceAddress = serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getHostname();
-                                        } else {
-                                            serviceAddress = serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getIp();
-                                        }
-
-                                        if (kafkaCluster.isExposedWithTls()) {
-                                            this.kafkaExternalDnsNames.put(podNumber, serviceAddress);
-                                        }
-                                    } else if (kafkaCluster.isExposedWithNodePort()) {
-                                        serviceAddress = serviceOperations.get(namespace, serviceName).getSpec().getPorts().get(0).getNodePort().toString();
-                                    }
-
-                                    this.kafkaExternalAddresses.put(podNumber, serviceAddress);
-
-                                    if (log.isTraceEnabled()) {
-                                        log.trace("{}: Found address {} for Service {}", reconciliation, serviceAddress, serviceName);
-                                    }
-
-                                    routeFuture.complete();
-                                } else {
-                                    log.warn("{}: No address found for Service {}", reconciliation, serviceName);
-                                    routeFuture.fail("No address found for Service " + serviceName);
-                                }
-                            });
-
-                            routeFutures.add(routeFuture);
+                        if (kafkaCluster.isExposedWithNodePort()) {
+                            address = serviceOperations.hasNodePort(namespace, serviceName, 1_000, operationTimeoutMs);
+                        } else {
+                            address = serviceOperations.hasIngressAddress(namespace, serviceName, 1_000, operationTimeoutMs);
                         }
 
-                        CompositeFuture.join(routeFutures).setHandler(res -> {
+                        int podNumber = i;
+
+                        address.setHandler(res -> {
                             if (res.succeeded()) {
-                                future.complete();
+                                String serviceAddress = null;
+                                if (kafkaCluster.isExposedWithLoadBalancer()) {
+                                    if (serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getHostname() != null) {
+                                        serviceAddress = serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getHostname();
+                                    } else {
+                                        serviceAddress = serviceOperations.get(namespace, serviceName).getStatus().getLoadBalancer().getIngress().get(0).getIp();
+                                    }
+
+                                    if (kafkaCluster.isExposedWithTls()) {
+                                        this.kafkaExternalDnsNames.put(podNumber, serviceAddress);
+                                    }
+                                } else if (kafkaCluster.isExposedWithNodePort()) {
+                                    serviceAddress = serviceOperations.get(namespace, serviceName).getSpec().getPorts().get(0).getNodePort().toString();
+                                }
+
+                                this.kafkaExternalAddresses.put(podNumber, serviceAddress);
+
+                                if (log.isTraceEnabled()) {
+                                    log.trace("{}: Found address {} for Service {}", reconciliation, serviceAddress, serviceName);
+                                }
+
+                                routeFuture.complete();
                             } else {
-                                future.fail(res.cause());
+                                log.warn("{}: No address found for Service {}", reconciliation, serviceName);
+                                routeFuture.fail("No address found for Service " + serviceName);
                             }
                         });
-                    }, res -> {
+
+                        routeFutures.add(routeFuture);
+                    }
+
+                    CompositeFuture.join(routeFutures).setHandler(res -> {
                         if (res.succeeded()) {
-                            blockingFuture.complete();
+                            future.complete();
                         } else {
-                            blockingFuture.fail(res.cause());
+                            future.fail(res.cause());
                         }
                     });
+                }, res -> {
+                    if (res.succeeded()) {
+                        blockingFuture.complete();
+                    } else {
+                        blockingFuture.fail(res.cause());
+                    }
+                });
 
             return withVoid(blockingFuture);
         }
@@ -787,33 +787,33 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
             Future blockingFuture = Future.future();
 
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").executeBlocking(
-                    future -> {
-                        String routeName = KafkaCluster.serviceName(name);
-                        //Future future = Future.future();
-                        Future<Void> address = routeOperations.hasAddress(namespace, routeName, 1_000, operationTimeoutMs);
+                future -> {
+                    String routeName = KafkaCluster.serviceName(name);
+                    //Future future = Future.future();
+                    Future<Void> address = routeOperations.hasAddress(namespace, routeName, 1_000, operationTimeoutMs);
 
-                        address.setHandler(res -> {
-                            if (res.succeeded()) {
-                                String bootstrapAddress = routeOperations.get(namespace, routeName).getSpec().getHost();
-                                this.kafkaExternalBootstrapDnsName = bootstrapAddress;
-
-                                if (log.isTraceEnabled()) {
-                                    log.trace("{}: Found address {} for Route {}", reconciliation, bootstrapAddress, routeName);
-                                }
-
-                                future.complete();
-                            } else {
-                                log.warn("{}: No address found for Route {}", reconciliation, routeName);
-                                future.fail("No address found for Route " + routeName);
-                            }
-                        });
-                    }, res -> {
+                    address.setHandler(res -> {
                         if (res.succeeded()) {
-                            blockingFuture.complete();
+                            String bootstrapAddress = routeOperations.get(namespace, routeName).getSpec().getHost();
+                            this.kafkaExternalBootstrapDnsName = bootstrapAddress;
+
+                            if (log.isTraceEnabled()) {
+                                log.trace("{}: Found address {} for Route {}", reconciliation, bootstrapAddress, routeName);
+                            }
+
+                            future.complete();
                         } else {
-                            blockingFuture.fail(res.cause());
+                            log.warn("{}: No address found for Route {}", reconciliation, routeName);
+                            future.fail("No address found for Route " + routeName);
                         }
                     });
+                }, res -> {
+                    if (res.succeeded()) {
+                        blockingFuture.complete();
+                    } else {
+                        blockingFuture.fail(res.cause());
+                    }
+                });
 
             return withVoid(blockingFuture);
         }
@@ -826,50 +826,50 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
             Future blockingFuture = Future.future();
 
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").executeBlocking(
-                    future -> {
-                        int replicas = kafkaCluster.getReplicas();
-                        List<Future> routeFutures = new ArrayList<>(replicas);
+                future -> {
+                    int replicas = kafkaCluster.getReplicas();
+                    List<Future> routeFutures = new ArrayList<>(replicas);
 
-                        for (int i = 0; i < replicas; i++) {
-                            String routeName = KafkaCluster.externalServiceName(name, i);
-                            Future routeFuture = Future.future();
-                            Future<Void> address = routeOperations.hasAddress(namespace, routeName, 1_000, operationTimeoutMs);
-                            int podNumber = i;
+                    for (int i = 0; i < replicas; i++) {
+                        String routeName = KafkaCluster.externalServiceName(name, i);
+                        Future routeFuture = Future.future();
+                        Future<Void> address = routeOperations.hasAddress(namespace, routeName, 1_000, operationTimeoutMs);
+                        int podNumber = i;
 
-                            address.setHandler(res -> {
-                                if (res.succeeded()) {
-                                    String routeAddress = routeOperations.get(namespace, routeName).getSpec().getHost();
-                                    this.kafkaExternalAddresses.put(podNumber, routeAddress);
-                                    this.kafkaExternalDnsNames.put(podNumber, routeAddress);
-
-                                    if (log.isTraceEnabled()) {
-                                        log.trace("{}: Found address {} for Route {}", reconciliation, routeAddress, routeName);
-                                    }
-
-                                    routeFuture.complete();
-                                } else {
-                                    log.warn("{}: No address found for Route {}", reconciliation, routeName);
-                                    routeFuture.fail("No address found for Route " + routeName);
-                                }
-                            });
-
-                            routeFutures.add(routeFuture);
-                        }
-
-                        CompositeFuture.join(routeFutures).setHandler(res -> {
+                        address.setHandler(res -> {
                             if (res.succeeded()) {
-                                future.complete();
+                                String routeAddress = routeOperations.get(namespace, routeName).getSpec().getHost();
+                                this.kafkaExternalAddresses.put(podNumber, routeAddress);
+                                this.kafkaExternalDnsNames.put(podNumber, routeAddress);
+
+                                if (log.isTraceEnabled()) {
+                                    log.trace("{}: Found address {} for Route {}", reconciliation, routeAddress, routeName);
+                                }
+
+                                routeFuture.complete();
                             } else {
-                                future.fail(res.cause());
+                                log.warn("{}: No address found for Route {}", reconciliation, routeName);
+                                routeFuture.fail("No address found for Route " + routeName);
                             }
                         });
-                    }, res -> {
+
+                        routeFutures.add(routeFuture);
+                    }
+
+                    CompositeFuture.join(routeFutures).setHandler(res -> {
                         if (res.succeeded()) {
-                            blockingFuture.complete();
+                            future.complete();
                         } else {
-                            blockingFuture.fail(res.cause());
+                            future.fail(res.cause());
                         }
                     });
+                }, res -> {
+                    if (res.succeeded()) {
+                        blockingFuture.complete();
+                    } else {
+                        blockingFuture.fail(res.cause());
+                    }
+                });
 
             return withVoid(blockingFuture);
         }
@@ -877,22 +877,22 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
         Future<ReconciliationState> kafkaGenerateCertificates() {
             Future<ReconciliationState> result = Future.future();
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").<ReconciliationState>executeBlocking(
-                    future -> {
-                        try {
-                            if (kafkaCluster.isExposedWithNodePort()) {
-                                kafkaCluster.generateCertificates(kafkaAssembly,
-                                        clusterCa, null, Collections.EMPTY_MAP);
-                            } else {
-                                kafkaCluster.generateCertificates(kafkaAssembly,
-                                        clusterCa, kafkaExternalBootstrapDnsName, kafkaExternalDnsNames);
-                            }
-                            future.complete(this);
-                        } catch (Throwable e) {
-                            future.fail(e);
+                future -> {
+                    try {
+                        if (kafkaCluster.isExposedWithNodePort()) {
+                            kafkaCluster.generateCertificates(kafkaAssembly,
+                                    clusterCa, null, Collections.EMPTY_MAP);
+                        } else {
+                            kafkaCluster.generateCertificates(kafkaAssembly,
+                                    clusterCa, kafkaExternalBootstrapDnsName, kafkaExternalDnsNames);
                         }
-                    },
-                    true,
-                    result.completer());
+                        future.complete(this);
+                    } catch (Throwable e) {
+                        future.fail(e);
+                    }
+                },
+                true,
+                result.completer());
             return result;
         }
 
@@ -955,35 +955,35 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
             Future<ReconciliationState> fut = Future.future();
 
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").<ReconciliationState>executeBlocking(
-                    future -> {
-                        try {
-                            this.topicOperator = TopicOperator.fromCrd(kafkaAssembly);
+                future -> {
+                    try {
+                        this.topicOperator = TopicOperator.fromCrd(kafkaAssembly);
 
-                            if (topicOperator != null) {
-                                ConfigMap logAndMetricsConfigMap = topicOperator.generateMetricsAndLogConfigMap(
-                                        topicOperator.getLogging() instanceof ExternalLogging ?
-                                                configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) topicOperator.getLogging()).getName()) :
-                                                null);
-                                this.toDeployment = topicOperator.generateDeployment(isOpenShift);
-                                this.toMetricsAndLogsConfigMap = logAndMetricsConfigMap;
-                                this.toDeployment.getSpec().getTemplate().getMetadata().getAnnotations().put("strimzi.io/logging", this.toMetricsAndLogsConfigMap.getData().get("log4j2.properties"));
-                            } else {
-                                this.toDeployment = null;
-                                this.toMetricsAndLogsConfigMap = null;
-                            }
-
-                            future.complete(this);
-                        } catch (Throwable e) {
-                            future.fail(e);
-                        }
-                    }, true,
-                    res -> {
-                        if (res.succeeded()) {
-                            fut.complete(res.result());
+                        if (topicOperator != null) {
+                            ConfigMap logAndMetricsConfigMap = topicOperator.generateMetricsAndLogConfigMap(
+                                    topicOperator.getLogging() instanceof ExternalLogging ?
+                                            configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) topicOperator.getLogging()).getName()) :
+                                            null);
+                            this.toDeployment = topicOperator.generateDeployment(isOpenShift);
+                            this.toMetricsAndLogsConfigMap = logAndMetricsConfigMap;
+                            this.toDeployment.getSpec().getTemplate().getMetadata().getAnnotations().put("strimzi.io/logging", this.toMetricsAndLogsConfigMap.getData().get("log4j2.properties"));
                         } else {
-                            fut.fail(res.cause());
+                            this.toDeployment = null;
+                            this.toMetricsAndLogsConfigMap = null;
                         }
+
+                        future.complete(this);
+                    } catch (Throwable e) {
+                        future.fail(e);
                     }
+                }, true,
+                res -> {
+                    if (res.succeeded()) {
+                        fut.complete(res.result());
+                    } else {
+                        fut.fail(res.cause());
+                    }
+                }
             );
             return fut;
         }
@@ -1041,42 +1041,42 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
             Future<ReconciliationState> fut = Future.future();
 
             vertx.createSharedWorkerExecutor("kubernetes-ops-pool").<ReconciliationState>executeBlocking(
-                    future -> {
-                        try {
-                            EntityOperator entityOperator = EntityOperator.fromCrd(kafkaAssembly);
+                future -> {
+                    try {
+                        EntityOperator entityOperator = EntityOperator.fromCrd(kafkaAssembly);
 
-                            if (entityOperator != null) {
-                                EntityTopicOperator topicOperator = entityOperator.getTopicOperator();
-                                EntityUserOperator userOperator = entityOperator.getUserOperator();
+                        if (entityOperator != null) {
+                            EntityTopicOperator topicOperator = entityOperator.getTopicOperator();
+                            EntityUserOperator userOperator = entityOperator.getUserOperator();
 
-                                ConfigMap topicOperatorLogAndMetricsConfigMap = topicOperator != null ?
-                                        topicOperator.generateMetricsAndLogConfigMap(topicOperator.getLogging() instanceof ExternalLogging ?
-                                                configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) topicOperator.getLogging()).getName()) :
-                                                null) : null;
+                            ConfigMap topicOperatorLogAndMetricsConfigMap = topicOperator != null ?
+                                    topicOperator.generateMetricsAndLogConfigMap(topicOperator.getLogging() instanceof ExternalLogging ?
+                                            configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) topicOperator.getLogging()).getName()) :
+                                            null) : null;
 
-                                ConfigMap userOperatorLogAndMetricsConfigMap = userOperator != null ?
-                                        userOperator.generateMetricsAndLogConfigMap(userOperator.getLogging() instanceof ExternalLogging ?
-                                                configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) userOperator.getLogging()).getName()) :
-                                                null) : null;
+                            ConfigMap userOperatorLogAndMetricsConfigMap = userOperator != null ?
+                                    userOperator.generateMetricsAndLogConfigMap(userOperator.getLogging() instanceof ExternalLogging ?
+                                            configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) userOperator.getLogging()).getName()) :
+                                            null) : null;
 
-                                this.entityOperator = entityOperator;
-                                this.eoDeployment = entityOperator.generateDeployment(isOpenShift);
-                                this.topicOperatorMetricsAndLogsConfigMap = topicOperatorLogAndMetricsConfigMap;
-                                this.userOperatorMetricsAndLogsConfigMap = userOperatorLogAndMetricsConfigMap;
-                            }
-
-                            future.complete(this);
-                        } catch (Throwable e) {
-                            future.fail(e);
+                            this.entityOperator = entityOperator;
+                            this.eoDeployment = entityOperator.generateDeployment(isOpenShift);
+                            this.topicOperatorMetricsAndLogsConfigMap = topicOperatorLogAndMetricsConfigMap;
+                            this.userOperatorMetricsAndLogsConfigMap = userOperatorLogAndMetricsConfigMap;
                         }
-                    }, true,
-                    res -> {
-                        if (res.succeeded()) {
-                            fut.complete(res.result());
-                        } else {
-                            fut.fail(res.cause());
-                        }
+
+                        future.complete(this);
+                    } catch (Throwable e) {
+                        future.fail(e);
                     }
+                }, true,
+                res -> {
+                    if (res.succeeded()) {
+                        fut.complete(res.result());
+                    } else {
+                        fut.fail(res.cause());
+                    }
+                }
             );
             return fut;
         }
