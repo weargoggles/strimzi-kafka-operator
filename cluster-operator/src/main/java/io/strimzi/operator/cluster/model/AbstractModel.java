@@ -682,7 +682,7 @@ public abstract class AbstractModel {
         return s;
     }
 
-    protected Probe createExecProbe(String command, int initialDelay, int timeout) {
+    protected Probe createExecProbe(List<String> command, int initialDelay, int timeout) {
         Probe probe = new ProbeBuilder().withNewExec()
                 .withCommand(command)
                 .endExec()
