@@ -15,6 +15,33 @@ This procedure describes how to upgrade the Cluster Operator from a previous ver
 
 .Procedure
 
+. Determine the version of Kafka being used in all existing Kafka clusters, Kafka Connect and Kafka Mirror Maker deployments. Update the custom resources for each of these to include the Kafka version currently being used. For example, for `Kafka` resources:
++
+[yaml]
+----
+kind: Kafka
+# ...
+spec:
+  kafka:
+    version: 2.0.0
+    # ...
+  # ...
+----
++
+Similarly, for Kafka Connect resources:
++
+[yaml]
+----
+kind: KafkaConnect
+# ...
+spec:
+  kafka:
+    version: 2.0.0
+    # ...
+  # ...
+----
+
+
 . Determine what how the running Cluster Operator differs from the default configuration provided in the release artefacts of the previous version downloaded from {ReleaseDownload}.
 You can do this using `diff`. 
 For example if the original release artefacts are in the `old-install` directory:
