@@ -5,7 +5,7 @@ watchNamespaces: []
 image:
   repository: strimzi
   name: cluster-operator
-  tag: 0.11.1
+  tag: latest
   imagePullPolicy: IfNotPresent
 logLevel: INFO
 fullReconciliationIntervalMs: 120000
@@ -16,58 +16,58 @@ operationTimeoutMs: 300000
 zookeeper:
   image:
     repository: strimzi
-    name: zookeeper
-    tag: 0.11.1
+    name: kafka
+    tagPrefix: latest
 kafka:
   image:
     repository: strimzi
     name: kafka
-    tagPrefix: 0.11.1
+    tagPrefix: latest
 kafkaConnect:
   image:
     repository: strimzi
-    name: kafka-connect
-    tagPrefix: 0.11.1
+    name: kafka
+    tagPrefix: latest
 kafkaConnects2i:
   image:
     repository: strimzi
-    name: kafka-connect-s2i
-    tagPrefix: 0.11.1
+    name: kafka
+    tagPrefix: latest
 topicOperator:
   image:
     repository: strimzi
     name: topic-operator
-    tag: 0.11.1
+    tag: latest
 userOperator:
   image:
     repository: strimzi
     name: user-operator
-    tag: 0.11.1
+    tag: latest
 kafkaInit:
   image:
     repository: strimzi
     name: kafka-init
-    tag: 0.11.1
+    tag: latest
 tlsSidecarZookeeper:
   image:
     repository: strimzi
     name: zookeeper-stunnel
-    tag: 0.11.1
+    tag: latest
 tlsSidecarKafka:
   image:
     repository: strimzi
     name: kafka-stunnel
-    tag: 0.11.1
+    tag: latest
 tlsSidecarEntityOperator:
   image:
     repository: strimzi
     name: entity-operator-stunnel
-    tag: 0.11.1
+    tag: latest
 kafkaMirrorMaker:
   image:
     repository: strimzi
-    name: kafka-mirror-maker
-    tagPrefix: 0.11.1
+    name: kafka
+    tagPrefix: latest
 resources:
   limits:
     memory: 256Mi
@@ -86,3 +86,4 @@ readinessProbe:
 # imageRepositoryOverride: foobar
 # Override the docker image tag used by all Strimzi images
 # imageTagOverride: latest
+createGlobalResources: true
